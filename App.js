@@ -1,5 +1,5 @@
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import Axios from "axios";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Permissions from "expo-permissions";
@@ -13,16 +13,41 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
+  const [expoToken, setExpoToken] = useState("");
   const notifyMeBtnHandler = () => {
-    Notifications.scheduleNotificationAsync({
-      content: {
-        title: "The First Notification",
+    // Notifications.scheduleNotificationAsync({
+    //   content: {
+    //     title: "The First Notification",
+    //     body: "Assalamualaikum",
+    //   },
+    //   trigger: {
+    //     seconds: 5,
+    //   },
+    // });
+
+    // Push Notifications
+    const EXPO_URL = "https://exp.host/--/api/v2/push/send";
+    Axios.post(
+      EXPO_URL,
+      {
+        to: expoToken, //expo push token
+        title: "Salam",
         body: "Assalamualaikum",
       },
-      trigger: {
-        seconds: 5,
-      },
-    });
+      {
+        headers: {
+          Accept: "Application/json",
+          "Accept-Encoding": "gzip, deflate",
+          "Content-Type": "Application/json",
+        },
+      }
+    )
+      .then(() => {
+        console.log("Notif Sent");
+      })
+      .catch(() => {
+        console.log("error");
+      });
   };
 
   // Get Permissions
@@ -36,12 +61,17 @@ export default function App() {
       })
       .then((permObj) => {
         if (permObj.status !== "granted") {
-          return permObj;
+          throw new Error("No Notifications Permission");
         }
       })
-      .catch(() => {
-        console.log("error");
-      });
+      .then(() => {
+        return Notifications.getExpoPushTokenAsync();
+      })
+      .then((responsePushToken) => {
+        console.log(responsePushToken);
+        setExpoToken(responsePushToken.data);
+      })
+      .catch();
   }, []);
 
   // Set Notifications Listener
